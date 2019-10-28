@@ -1,7 +1,8 @@
 import Vec3, { Vector3 } from './Vec3'
 
 export default class Mat4 {
-  static stride: number = 4 * 4
+  static STRIDE: number = 4 * 4
+  static EPSILON = 0.000001
 
   static create = (): Float32Array => {
     // 1, 0, 0, 0,
@@ -11,8 +12,24 @@ export default class Mat4 {
     return new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
   }
 
-  static multiply(a: Float32Array, b: Float32Array): Float32Array {
+  static clone(original?: Float32Array): Float32Array {
     const dest: Float32Array = this.create()
+
+    if (!original) return dest
+
+    dest.forEach(
+      (val: number, index: number): number => (dest[index] = original[index])
+    )
+
+    return dest
+  }
+
+  static multiply(
+    a: Float32Array,
+    b: Float32Array,
+    out?: Float32Array
+  ): Float32Array {
+    const dest: Float32Array = this.clone(out)
 
     dest[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12]
     dest[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13]
@@ -37,8 +54,13 @@ export default class Mat4 {
     return dest
   }
 
-  static lookAt(eye: Vector3, target: Vector3, up: Vector3): Float32Array {
-    const dest: Float32Array = this.create()
+  static lookAt(
+    eye: Vector3,
+    target: Vector3,
+    up: Vector3,
+    out?: Float32Array
+  ): Float32Array {
+    const dest: Float32Array = this.clone(out)
 
     let zVec: Vector3 = Vec3.sub(eye, target)
 
@@ -87,9 +109,10 @@ export default class Mat4 {
     fov: number,
     aspect: number,
     near: number,
-    far: number
+    far: number,
+    out?: Float32Array
   ): Float32Array {
-    const dest: Float32Array = this.create()
+    const dest: Float32Array = this.clone(out)
 
     const t: number = near * Math.tan((fov * Math.PI) / 360)
     const r: number = t * aspect
@@ -107,48 +130,110 @@ export default class Mat4 {
     return dest
   }
 
-  static translate(v: Vector3): Float32Array {
-    const dest: Float32Array = this.create()
+  static translate(v: Vector3, out?: Float32Array): Float32Array {
+    const dest: Float32Array = this.clone(out)
 
-    dest[12] = dest[0] * v[0] + dest[4] * v[1] + dest[8] * v[2] + dest[12]
-    dest[13] = dest[1] * v[0] + dest[5] * v[1] + dest[9] * v[2] + dest[13]
-    dest[14] = dest[2] * v[0] + dest[6] * v[1] + dest[10] * v[2] + dest[14]
-    dest[15] = dest[3] * v[0] + dest[7] * v[1] + dest[11] * v[2] + dest[15]
+    const x: number = v[0]
+    const y: number = v[1]
+    const z: number = v[2]
+
+    dest[12] = dest[0] * x + dest[4] * y + dest[8] * z + dest[12]
+    dest[13] = dest[1] * x + dest[5] * y + dest[9] * z + dest[13]
+    dest[14] = dest[2] * x + dest[6] * y + dest[10] * z + dest[14]
+    dest[15] = dest[3] * x + dest[7] * y + dest[11] * z + dest[15]
 
     return dest
   }
 
-  static rotate(radian: number, axis: Vector3): Float32Array {
+  static scale(v: Vector3, out?: Float32Array): Float32Array {
+    const dest: Float32Array = this.clone(out)
+
+    const x: number = v[0]
+    const y: number = v[1]
+    const z: number = v[2]
+
+    dest[0] *= x
+    dest[1] *= x
+    dest[2] *= x
+    dest[3] *= x
+
+    dest[4] *= y
+    dest[5] *= y
+    dest[6] *= y
+    dest[7] *= y
+
+    dest[8] *= z
+    dest[9] *= z
+    dest[10] *= z
+    dest[11] *= z
+
+    return dest
+  }
+
+  static rotate(
+    radian: number,
+    axis: Vector3,
+    out?: Float32Array
+  ): Float32Array {
+    const dest: Float32Array = this.clone(out)
+
+    const x: number = Vec3.normalize(axis)[0]
+    const y: number = Vec3.normalize(axis)[1]
+    const z: number = Vec3.normalize(axis)[2]
+
+    const c: number = Math.cos(radian)
+    const s: number = Math.sin(radian)
+    const t: number = 1 - c
+
+    const a00: number = dest[0]
+    const a01: number = dest[1]
+    const a02: number = dest[2]
+    const a03: number = dest[3]
+    const a10: number = dest[4]
+    const a11: number = dest[5]
+    const a12: number = dest[6]
+    const a13: number = dest[7]
+    const a20: number = dest[8]
+    const a21: number = dest[9]
+    const a22: number = dest[10]
+    const a23: number = dest[11]
+
+    const b00: number = x * x * t + c
+    const b01: number = y * x * t + z * s
+    const b02: number = z * x * t - y * s
+    const b10: number = x * y * t - z * s
+    const b11: number = y * y * t + c
+    const b12: number = z * y * t + x * s
+    const b20: number = x * z * t + y * s
+    const b21: number = y * z * t - x * s
+    const b22: number = z * z * t + c
+
+    dest[0] = a00 * b00 + a10 * b01 + a20 * b02
+    dest[1] = a01 * b00 + a11 * b01 + a21 * b02
+    dest[2] = a02 * b00 + a12 * b01 + a22 * b02
+    dest[3] = a03 * b00 + a13 * b01 + a23 * b02
+    dest[4] = a00 * b10 + a10 * b11 + a20 * b12
+    dest[5] = a01 * b10 + a11 * b11 + a21 * b12
+    dest[6] = a02 * b10 + a12 * b11 + a22 * b12
+    dest[7] = a03 * b10 + a13 * b11 + a23 * b12
+    dest[8] = a00 * b20 + a10 * b21 + a20 * b22
+    dest[9] = a01 * b20 + a11 * b21 + a21 * b22
+    dest[10] = a02 * b20 + a12 * b21 + a22 * b22
+    dest[11] = a03 * b20 + a13 * b21 + a23 * b22
+
+    return dest
+  }
+
+  static rotateX(radian: number): Float32Array {
     const dest: Float32Array = this.create()
 
-    const sq: number = Vec3.len(axis)
-    const normalAxis: Vector3 = sq !== 1 ? Vec3.normalize(axis) : axis
-    const cosA: number = Math.cos(radian)
-    const sinA: number = Math.sin(radian)
-    const revCosA: number = 1 - cosA
+    const cos: number = Math.cos(radian)
+    const sin: number = Math.sin(radian)
 
-    const s: number = dest[0] * dest[0] * revCosA + cosA
-    const t: number = dest[1] * dest[0] * revCosA + normalAxis[2] * sinA
-    const u: number = dest[2] * dest[0] * revCosA - normalAxis[1] * sinA
-
-    const v: number = dest[0] * dest[1] * revCosA - normalAxis[2] * sinA
-    const w: number = dest[1] * dest[1] * revCosA + cosA
-    const x: number = dest[2] * dest[1] * revCosA + normalAxis[0] * sinA
-
-    const y: number = dest[0] * dest[2] * revCosA + normalAxis[1] * sinA
-    const z: number = dest[1] * dest[2] * revCosA - normalAxis[0] * sinA
-    const a: number = dest[2] * dest[2] * revCosA + cosA
-
-    // if (radian) {
-
-    // }
-
-    dest[0] = dest[0] * s + dest[4] * t + dest[8] * u
-    dest[1] = dest[1] * s + dest[5] * t + dest[9] * u
-    dest[2] = dest[2] * s + dest[6] * t + dest[10] * u
-    dest[3] = dest[3] * s + dest[7] * t + dest[11] * u
-
-    dest[4] = dest[0]
+    dest[0] = cos
+    dest[2] = sin
+    dest[8] = -sin
+    dest[10] = cos
 
     return dest
   }

@@ -1,3 +1,35 @@
+type Target =
+  | 'ARRAY_BUFFER'
+  | 'ELEMENT_ARRAY_BUFFER'
+  | 'COPY_READ_BUFFER'
+  | 'COPY_WRITE_BUFFER'
+  | 'TRANSFORM_FEEDBACK_BUFFER'
+  | 'UNIFORM_BUFFER'
+  | 'PIXEL_PACK_BUFFER'
+  | 'PIXEL_UNPACK_BUFFER'
+
+type Usage =
+  | 'STATIC_DRAW'
+  | 'DYNAMIC_DRAW'
+  | 'STREAM_DRAW'
+  | 'STATIC_READ'
+  | 'DYNAMIC_READ'
+  | 'STREAM_READ'
+  | 'STATIC_COPY'
+  | 'DYNAMIC_COPY'
+  | 'STREAM_COPY'
+
+type Mode =
+  | 'POINTS'
+  | 'LINE_STRIP'
+  | 'LINE_LOOP'
+  | 'LINES'
+  | 'TRIANGLE_STRIP'
+  | 'TRIANGLE_FAN'
+  | 'TRIANGLES'
+
+type DrayElType = 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT' | 'UNSIGNED_INT'
+
 export default class WebGLBase {
   private canvas: HTMLCanvasElement | null
   private context: WebGLRenderingContext
@@ -160,11 +192,28 @@ export default class WebGLBase {
   }
 
   drawArrays(
-    type: number = this.context.TRIANGLES,
-    offset: number = 0,
-    amount: number = 3
+    mode: Mode = 'TRIANGLES',
+    first: number = 0,
+    count: number = 3
   ): WebGLBase {
-    this.context.drawArrays(type, offset, amount)
+    this.context.drawArrays(this.context[mode], first, count)
+
+    return this
+  }
+
+  drawElements(
+    mode: Mode = 'TRIANGLES',
+    count: number = 3,
+    type: DrayElType = 'UNSIGNED_SHORT',
+    offset: number = 0
+  ): WebGLBase {
+    this.context.drawElements(
+      this.context[mode],
+      count,
+      this.context[type],
+      offset
+    )
+
     return this
   }
 
@@ -173,39 +222,46 @@ export default class WebGLBase {
     return this
   }
 
-  createVbo(data: Float32Array): WebGLBuffer {
+  createVbo(
+    data: ArrayBuffer,
+    target: Target = 'ARRAY_BUFFER',
+    usage: Usage = 'STATIC_DRAW'
+  ): WebGLBuffer {
     const buffer: WebGLBuffer | null = this.context.createBuffer()
 
     if (buffer === null) {
       throw new Error('can not create Buffer')
     }
 
-    this.context.bindBuffer(this.context.ARRAY_BUFFER, buffer)
-    this.context.bufferData(
-      this.context.ARRAY_BUFFER,
-      data,
-      this.context.STATIC_DRAW
-    )
+    this.context.bindBuffer(this.context[target], buffer)
+    this.context.bufferData(this.context[target], data, this.context[usage])
 
-    this.context.bindBuffer(this.context.ARRAY_BUFFER, null)
+    this.context.bindBuffer(this.context[target], null)
 
     return buffer
   }
 
-  bindBuffer(
-    buffer: WebGLBuffer,
-    bufferType: number = this.context.ARRAY_BUFFER
-  ): WebGLBase {
-    this.context.bindBuffer(bufferType, buffer)
+  createBufferObj(
+    data: ArrayBuffer,
+    target: Target = 'ELEMENT_ARRAY_BUFFER',
+    usage: Usage = 'STATIC_DRAW'
+  ) {
+    const buffer: WebGLBuffer | null = this.context.createBuffer()
 
-    return this
+    if (buffer === null) {
+      throw new Error('can not create Buffer')
+    }
+
+    this.context.bindBuffer(this.context[target], buffer)
+    this.context.bufferData(this.context[target], data, this.context[usage])
+
+    this.context.bindBuffer(this.context[target], null)
+
+    return buffer
   }
 
-  bindBufferFromArr(
-    buffer: Float32Array,
-    bufferType: number = this.context.ARRAY_BUFFER
-  ): WebGLBase {
-    this.bindBuffer(this.createVbo(buffer), bufferType)
+  bindBuffer(buffer: WebGLBuffer, target: Target = 'ARRAY_BUFFER'): WebGLBase {
+    this.context.bindBuffer(this.context[target], buffer)
 
     return this
   }
@@ -220,8 +276,22 @@ export default class WebGLBase {
     return this
   }
 
-  vertexAttrPointer(location: number, stride: number, type: number): WebGLBase {
-    this.context.vertexAttribPointer(location, stride, type, false, 0, 0)
+  vertexAttrPointer(
+    index: number,
+    size: number,
+    type: number,
+    normalized: boolean = false,
+    stride: number = 0,
+    offset: number = 0
+  ): WebGLBase {
+    this.context.vertexAttribPointer(
+      index,
+      size,
+      type,
+      normalized,
+      stride,
+      offset
+    )
 
     return this
   }
@@ -229,10 +299,10 @@ export default class WebGLBase {
   registerVertexAttrByName(
     attrName: string,
     stride: number,
-    data: Float32Array,
+    data: ArrayBuffer,
     type: number = this.context.FLOAT
   ): WebGLBase {
-    return this.bindBufferFromArr(data)
+    return this.bindBuffer(this.createVbo(data))
       .enableVertexAttrByName(attrName)
       .vertexAttrPointer(this.getAttrLocation(attrName), stride, type)
   }
