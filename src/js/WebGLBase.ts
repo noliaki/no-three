@@ -11,18 +11,36 @@ export default class WebGLBase {
       throw new Error(`${selector} is not found`)
     }
 
-    this.canvas.width = window.innerWidth
-    this.canvas.height = window.innerHeight
+    // this.canvas.width = window.innerWidth
+    // this.canvas.height = window.innerHeight
+
+    this.setCanvasSize(window.innerWidth, window.innerHeight)
 
     this.context = (this.canvas.getContext('webgl') ||
       this.canvas.getContext('experimental-webgl')) as WebGLRenderingContext
 
-    this.context.clearColor(0.0, 0.0, 0.0, 1.0)
-    this.context.clearDepth(1.0)
+    this.clear()
+  }
 
+  setCanvasSize(width: number, height: number): WebGLBase {
+    if (this.canvas === null) {
+      return this
+    }
+
+    this.canvas.width = width
+    this.canvas.height = height
+
+    return this
+  }
+
+  clear(): WebGLBase {
+    this.context.clearColor(0.0, 0, 0, 1.0)
+    this.context.clearDepth(1.0)
     this.context.clear(
       this.context.COLOR_BUFFER_BIT | this.context.DEPTH_BUFFER_BIT
     )
+
+    return this
   }
 
   createVertexShader(shaderSource: string): WebGLBase {
@@ -43,7 +61,13 @@ export default class WebGLBase {
     return this
   }
 
-  createProgram(): WebGLBase {
+  createProgram(
+    vertexShaderSource: string,
+    fragmentShaderSource: string
+  ): WebGLBase {
+    this.createVertexShader(vertexShaderSource)
+    this.createFragmentShader(fragmentShaderSource)
+
     if (this.vertexShader === null) {
       throw new Error('vertex shader is not created')
     }
@@ -82,7 +106,74 @@ export default class WebGLBase {
     return this.context.getAttribLocation(this.program, attrName)
   }
 
-  setBufferData(data: Float32Array): WebGLBuffer {
+  getUniformLocation(attrName: string): WebGLUniformLocation | null {
+    if (this.program === null) {
+      throw new Error('program is not created')
+    }
+
+    return this.context.getUniformLocation(this.program, attrName)
+  }
+
+  registerUniform(
+    attrName: string,
+    data: Float32Array,
+    type: string = 'mat4'
+  ): WebGLBase {
+    switch (type) {
+      case 'f1':
+        this.context.uniform1fv(this.getUniformLocation(attrName), data)
+        return this
+      case 'f2':
+        this.context.uniform2fv(this.getUniformLocation(attrName), data)
+        return this
+      case 'f3':
+        this.context.uniform3fv(this.getUniformLocation(attrName), data)
+        return this
+      case 'f4':
+        this.context.uniform4fv(this.getUniformLocation(attrName), data)
+        return this
+
+      case 'mat2':
+        this.context.uniformMatrix2fv(
+          this.getUniformLocation(attrName),
+          false,
+          data
+        )
+        return this
+      case 'mat3':
+        this.context.uniformMatrix3fv(
+          this.getUniformLocation(attrName),
+          false,
+          data
+        )
+        return this
+      case 'mat4':
+        this.context.uniformMatrix4fv(
+          this.getUniformLocation(attrName),
+          false,
+          data
+        )
+        return this
+    }
+
+    return this
+  }
+
+  drawArrays(
+    type: number = this.context.TRIANGLES,
+    offset: number = 0,
+    amount: number = 3
+  ): WebGLBase {
+    this.context.drawArrays(type, offset, amount)
+    return this
+  }
+
+  flush(): WebGLBase {
+    this.context.flush()
+    return this
+  }
+
+  createVbo(data: Float32Array): WebGLBuffer {
     const buffer: WebGLBuffer | null = this.context.createBuffer()
 
     if (buffer === null) {
@@ -99,6 +190,51 @@ export default class WebGLBase {
     this.context.bindBuffer(this.context.ARRAY_BUFFER, null)
 
     return buffer
+  }
+
+  bindBuffer(
+    buffer: WebGLBuffer,
+    bufferType: number = this.context.ARRAY_BUFFER
+  ): WebGLBase {
+    this.context.bindBuffer(bufferType, buffer)
+
+    return this
+  }
+
+  bindBufferFromArr(
+    buffer: Float32Array,
+    bufferType: number = this.context.ARRAY_BUFFER
+  ): WebGLBase {
+    this.bindBuffer(this.createVbo(buffer), bufferType)
+
+    return this
+  }
+
+  enableVertexAttrByName(attrName: string): WebGLBase {
+    return this.enableVertexAttr(this.getAttrLocation(attrName))
+  }
+
+  enableVertexAttr(location: number): WebGLBase {
+    this.context.enableVertexAttribArray(location)
+
+    return this
+  }
+
+  vertexAttrPointer(location: number, stride: number, type: number): WebGLBase {
+    this.context.vertexAttribPointer(location, stride, type, false, 0, 0)
+
+    return this
+  }
+
+  registerVertexAttrByName(
+    attrName: string,
+    stride: number,
+    data: Float32Array,
+    type: number = this.context.FLOAT
+  ): WebGLBase {
+    return this.bindBufferFromArr(data)
+      .enableVertexAttrByName(attrName)
+      .vertexAttrPointer(this.getAttrLocation(attrName), stride, type)
   }
 
   private createShader(shaderSource: string, shaderType: number): WebGLShader {
