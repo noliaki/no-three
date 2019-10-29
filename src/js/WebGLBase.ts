@@ -36,9 +36,20 @@ export default class WebGLBase {
   private vertexShader: WebGLShader | null = null
   private fragmentShader: WebGLShader | null = null
   private program: WebGLProgram | null = null
+  private clearColor: [number, number, number, number]
   private textureIndex: number = 0
 
-  constructor(selector: string) {
+  constructor({
+    selector,
+    clearColor = [0, 0, 0, 1],
+    width,
+    height
+  }: {
+    selector: string
+    clearColor?: [number, number, number, number?]
+    width?: number
+    height?: number
+  }) {
     this.canvas = document.querySelector(selector)
     if (this.canvas === null) {
       throw new Error(`${selector} is not found`)
@@ -50,7 +61,13 @@ export default class WebGLBase {
     this.context = (this.canvas.getContext('webgl') ||
       this.canvas.getContext('experimental-webgl')) as WebGLRenderingContext
 
-    this.setCanvasSize(window.innerWidth, window.innerHeight)
+    this.clearColor = [
+      clearColor[0],
+      clearColor[1],
+      clearColor[2],
+      clearColor[3] || 0
+    ]
+    this.setCanvasSize(width || window.innerWidth, height || window.innerHeight)
     this.context.enable(this.context.CULL_FACE)
     this.context.enable(this.context.DEPTH_TEST)
     this.context.depthFunc(this.context.LEQUAL)
@@ -71,7 +88,12 @@ export default class WebGLBase {
   }
 
   clear(): WebGLBase {
-    this.context.clearColor(0.0, 0, 0, 1.0)
+    this.context.clearColor(
+      this.clearColor[0],
+      this.clearColor[1],
+      this.clearColor[2],
+      this.clearColor[3]
+    )
     this.context.clearDepth(1.0)
     this.context.clear(
       this.context.COLOR_BUFFER_BIT | this.context.DEPTH_BUFFER_BIT
@@ -155,9 +177,9 @@ export default class WebGLBase {
     name,
     image
   }: {
-    name?: string
-    image?: HTMLImageElement | HTMLCanvasElement
-  } = {}): WebGLBase {
+    name: string
+    image: HTMLImageElement | HTMLCanvasElement
+  }): WebGLBase {
     if (!name || !image) {
       throw new Error('name and texture is needed')
     }
@@ -191,42 +213,46 @@ export default class WebGLBase {
     return this
   }
 
-  registerUniform(
-    attrName: string,
-    data: Float32Array,
-    type: string = 'mat4'
-  ): WebGLBase {
+  registerUniform({
+    name,
+    data,
+    type
+  }: {
+    name: string
+    data: Float32Array
+    type: string
+  }): WebGLBase {
     switch (type) {
       case 'f1':
-        this.context.uniform1fv(this.getUniformLocation(attrName), data)
+        this.context.uniform1fv(this.getUniformLocation(name), data)
         return this
       case 'f2':
-        this.context.uniform2fv(this.getUniformLocation(attrName), data)
+        this.context.uniform2fv(this.getUniformLocation(name), data)
         return this
       case 'f3':
-        this.context.uniform3fv(this.getUniformLocation(attrName), data)
+        this.context.uniform3fv(this.getUniformLocation(name), data)
         return this
       case 'f4':
-        this.context.uniform4fv(this.getUniformLocation(attrName), data)
+        this.context.uniform4fv(this.getUniformLocation(name), data)
         return this
 
       case 'mat2':
         this.context.uniformMatrix2fv(
-          this.getUniformLocation(attrName),
+          this.getUniformLocation(name),
           false,
           data
         )
         return this
       case 'mat3':
         this.context.uniformMatrix3fv(
-          this.getUniformLocation(attrName),
+          this.getUniformLocation(name),
           false,
           data
         )
         return this
       case 'mat4':
         this.context.uniformMatrix4fv(
-          this.getUniformLocation(attrName),
+          this.getUniformLocation(name),
           false,
           data
         )
@@ -321,14 +347,21 @@ export default class WebGLBase {
     return this
   }
 
-  vertexAttrPointer(
-    index: number,
-    size: number,
-    type: number,
-    normalized: boolean = false,
-    stride: number = 0,
-    offset: number = 0
-  ): WebGLBase {
+  vertexAttrPointer({
+    index,
+    size,
+    type,
+    normalized = false,
+    stride = 0,
+    offset = 0
+  }: {
+    index: number
+    size: number
+    type: number
+    normalized?: boolean
+    stride?: number
+    offset?: number
+  }): WebGLBase {
     this.context.vertexAttribPointer(
       index,
       size,
@@ -341,15 +374,24 @@ export default class WebGLBase {
     return this
   }
 
-  registerVertexAttrByName(
-    attrName: string,
-    stride: number,
-    data: ArrayBuffer,
-    type: number = this.context.FLOAT
-  ): WebGLBase {
+  registerVertexAttrByName({
+    name,
+    size,
+    data,
+    type = this.context.FLOAT
+  }: {
+    name: string
+    size: number
+    data: ArrayBuffer
+    type?: number
+  }): WebGLBase {
     return this.bindBuffer(this.createVbo(data))
-      .enableVertexAttrByName(attrName)
-      .vertexAttrPointer(this.getAttrLocation(attrName), stride, type)
+      .enableVertexAttrByName(name)
+      .vertexAttrPointer({
+        index: this.getAttrLocation(name),
+        size,
+        type
+      })
   }
 
   createTexture(

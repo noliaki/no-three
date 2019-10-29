@@ -6,7 +6,9 @@ import Triangle from './Triangle'
 import Square from './Square'
 import { loadImage } from './helper'
 
-const base: WebGLBase = new WebGLBase('#app')
+const base: WebGLBase = new WebGLBase({
+  selector: '#app'
+})
 const triangle: Triangle = new Triangle([0, 0, 0], 8)
 const square: Square = new Square([0, 0, 0], 1)
 const square2: Square = new Square([1, 1, 0], 1)
@@ -85,7 +87,11 @@ async function init(): Promise<void> {
 
   base
     .createProgram(vertexShaderSource, fragmentShaderSource)
-    .registerUniform('mvpMatrix', projectionViewMat, 'mat4')
+    .registerUniform({
+      name: 'mvpMatrix',
+      data: projectionViewMat,
+      type: 'mat4'
+    })
     .registerTexture({
       name: 'texture1',
       image: texture1
@@ -94,9 +100,21 @@ async function init(): Promise<void> {
       name: 'texture2',
       image: texture2
     })
-    .registerVertexAttrByName('position', 3, square.position)
-    .registerVertexAttrByName('textureCoord', 2, textureCoord)
-    .registerVertexAttrByName('color', 4, color)
+    .registerVertexAttrByName({
+      name: 'position',
+      size: 3,
+      data: square.position
+    })
+    .registerVertexAttrByName({
+      name: 'textureCoord',
+      size: 2,
+      data: textureCoord
+    })
+    .registerVertexAttrByName({
+      name: 'color',
+      size: 4,
+      data: color
+    })
     .bindBuffer(
       base.createBufferObj(square.index, 'ELEMENT_ARRAY_BUFFER', 'STATIC_DRAW'),
       'ELEMENT_ARRAY_BUFFER'
@@ -123,7 +141,11 @@ window.addEventListener('resize', (): void => {
   base
     .setCanvasSize(window.innerWidth, window.innerHeight)
     .clear()
-    .registerUniform('mvpMatrix', projectionViewMat, 'mat4')
+    .registerUniform({
+      name: 'mvpMatrix',
+      data: projectionViewMat,
+      type: 'mat4'
+    })
     .drawElements('TRIANGLES', square.index.length)
     .flush()
 })
