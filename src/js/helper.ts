@@ -1,5 +1,3 @@
-import { Vector3, Math as ThreeMath, TextureLoader, Texture } from 'three'
-
 const UA: string = navigator.userAgent.toLocaleLowerCase()
 const PI: number = Math.PI
 const PI2: number = PI * 2
@@ -8,22 +6,53 @@ export function isPC(): boolean {
   return !/(iphone|ipad|ipod|android)/i.test(UA)
 }
 
-export function getRandomPointOnSphere(r: number): Vector3 {
-  const u: number = ThreeMath.randFloat(0, 1)
-  const v: number = ThreeMath.randFloat(0, 1)
-  const theta: number = PI2 * u
-  const phi: number = Math.acos(2 * v - 1)
+export function loadImage(
+  src: string
+): Promise<HTMLImageElement | HTMLCanvasElement> {
+  return new Promise(
+    (resolve: (image: HTMLImageElement | HTMLCanvasElement) => void): void => {
+      const image: HTMLImageElement = new Image()
+      image.width = 512
+      image.height = 512
 
-  return new Vector3(
-    r * Math.sin(theta) * Math.sin(phi),
-    r * Math.cos(theta) * Math.sin(phi),
-    r * Math.cos(phi)
+      image.addEventListener(
+        'load',
+        (): void => {
+          const width: number = image.naturalWidth
+          const height: number = image.naturalHeight
+          const size: number = Math.pow(
+            2,
+            (Math.log(Math.min(width, height)) / Math.LN2) | 0
+          )
+
+          if (width !== height || width !== size) {
+            const canvas: HTMLCanvasElement = document.createElement('canvas')
+            canvas.width = size
+            canvas.height = size
+            ;(canvas.getContext('2d') as CanvasRenderingContext2D).drawImage(
+              image,
+              0,
+              0,
+              width,
+              height,
+              0,
+              0,
+              size,
+              size
+            )
+
+            return resolve(canvas)
+          }
+
+          resolve(image)
+        },
+        {
+          once: true,
+          passive: true
+        }
+      )
+
+      image.src = src
+    }
   )
-}
-
-export function loadTexture(src: string): Promise<Texture> {
-  return new Promise((resolve: (texture: Texture) => void): void => {
-    const textureLoader: TextureLoader = new TextureLoader()
-    textureLoader.load(src, resolve)
-  })
 }

@@ -4,6 +4,7 @@ import fragmentShaderSource from './fragment-shader'
 import Mat4 from './Mat4'
 import Triangle from './Triangle'
 import Square from './Square'
+import { loadImage } from './helper'
 
 const base: WebGLBase = new WebGLBase('#app')
 const triangle: Triangle = new Triangle([0, 0, 0], 8)
@@ -27,8 +28,18 @@ const color: Float32Array = new Float32Array([
   1,
   1
 ])
+const textureCoord: Float32Array = new Float32Array([
+  0.0,
+  0.0,
+  1.0,
+  0.0,
+  0.0,
+  1.0,
+  1.0,
+  1.0
+])
 
-const vMat: Float32Array = Mat4.lookAt([0.0, 0.0, 5.0], [0, 0, 0], [0, 1, 0])
+const vMat: Float32Array = Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0])
 const pMat: Float32Array = Mat4.perspective(
   90,
   window.innerWidth / window.innerHeight,
@@ -62,50 +73,59 @@ const projectionViewMat: Float32Array = Mat4.multiply(vMat, pMat)
 // }
 
 // console.log(position, index)
-console.log(square.position, square.index)
+// console.log(square.position, square.index)
 
-base
-  .createProgram(vertexShaderSource, fragmentShaderSource)
-  .registerUniform('mvpMatrix', projectionViewMat, 'mat4')
-  .registerVertexAttrByName('position', 3, square.position)
-  .registerVertexAttrByName('color', 4, color)
-  .bindBuffer(
-    base.createBufferObj(square.index, 'ELEMENT_ARRAY_BUFFER', 'STATIC_DRAW'),
-    'ELEMENT_ARRAY_BUFFER'
+async function init(): Promise<void> {
+  const texture1: HTMLImageElement | HTMLCanvasElement = await loadImage(
+    'cat-1.jpg'
   )
-  .drawElements('TRIANGLES', square.index.length)
-  // .registerUniform(
-  //   'mvpMatrix',
-  //   Mat4.multiply(
-  //     Mat4.translate([-Math.random() + 0.5, -Math.random() + 0.5, 0]),
-  //     projectionViewMat
-  //   ),
-  //   'mat4'
-  // )
-  // .drawArrays()
-  .flush()
+  const texture2: HTMLImageElement | HTMLCanvasElement = await loadImage(
+    'cat-2.jpg'
+  )
+
+  base
+    .createProgram(vertexShaderSource, fragmentShaderSource)
+    .registerUniform('mvpMatrix', projectionViewMat, 'mat4')
+    .registerTexture({
+      name: 'texture1',
+      image: texture1
+    })
+    .registerTexture({
+      name: 'texture2',
+      image: texture2
+    })
+    .registerVertexAttrByName('position', 3, square.position)
+    .registerVertexAttrByName('textureCoord', 2, textureCoord)
+    .registerVertexAttrByName('color', 4, color)
+    .bindBuffer(
+      base.createBufferObj(square.index, 'ELEMENT_ARRAY_BUFFER', 'STATIC_DRAW'),
+      'ELEMENT_ARRAY_BUFFER'
+    )
+    .drawElements('TRIANGLES', square.index.length)
+    // .registerUniform(
+    //   'mvpMatrix',
+    //   Mat4.multiply(
+    //     Mat4.translate([-Math.random() + 0.5, -Math.random() + 0.5, 0]),
+    //     projectionViewMat
+    //   ),
+    //   'mat4'
+    // )
+    // .drawArrays()
+    .flush()
+}
 
 window.addEventListener('resize', (): void => {
+  const projectionViewMat: Float32Array = Mat4.multiply(
+    Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0]),
+    Mat4.perspective(90, window.innerWidth / window.innerHeight, 0.1, 100)
+  )
+
   base
     .setCanvasSize(window.innerWidth, window.innerHeight)
     .clear()
-    .registerUniform(
-      'mvpMatrix',
-      Mat4.multiply(
-        projectionViewMat,
-        Mat4.translate([-Math.random() + 0.5, -Math.random() + 0.5, 0])
-      ),
-      'mat4'
-    )
-    .drawArrays()
-    .registerUniform(
-      'mvpMatrix',
-      Mat4.multiply(
-        projectionViewMat,
-        Mat4.translate([-Math.random() + 0.5, -Math.random() + 0.5, 0])
-      ),
-      'mat4'
-    )
-    .drawArrays()
+    .registerUniform('mvpMatrix', projectionViewMat, 'mat4')
+    .drawElements('TRIANGLES', square.index.length)
     .flush()
 })
+
+init()

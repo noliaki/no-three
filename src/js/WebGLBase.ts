@@ -36,6 +36,7 @@ export default class WebGLBase {
   private vertexShader: WebGLShader | null = null
   private fragmentShader: WebGLShader | null = null
   private program: WebGLProgram | null = null
+  private textureIndex: number = 0
 
   constructor(selector: string) {
     this.canvas = document.querySelector(selector)
@@ -46,10 +47,13 @@ export default class WebGLBase {
     // this.canvas.width = window.innerWidth
     // this.canvas.height = window.innerHeight
 
-    this.setCanvasSize(window.innerWidth, window.innerHeight)
-
     this.context = (this.canvas.getContext('webgl') ||
       this.canvas.getContext('experimental-webgl')) as WebGLRenderingContext
+
+    this.setCanvasSize(window.innerWidth, window.innerHeight)
+    this.context.enable(this.context.CULL_FACE)
+    this.context.enable(this.context.DEPTH_TEST)
+    this.context.depthFunc(this.context.LEQUAL)
 
     this.clear()
   }
@@ -61,6 +65,7 @@ export default class WebGLBase {
 
     this.canvas.width = width
     this.canvas.height = height
+    this.context.viewport(0, 0, width, height)
 
     return this
   }
@@ -144,6 +149,46 @@ export default class WebGLBase {
     }
 
     return this.context.getUniformLocation(this.program, attrName)
+  }
+
+  registerTexture({
+    name,
+    image
+  }: {
+    name?: string
+    image?: HTMLImageElement | HTMLCanvasElement
+  } = {}): WebGLBase {
+    if (!name || !image) {
+      throw new Error('name and texture is needed')
+    }
+
+    const texture: WebGLTexture = this.createTexture(image)
+
+    this.context.bindTexture(this.context.TEXTURE_2D, texture)
+    this.context.texParameteri(
+      this.context.TEXTURE_2D,
+      this.context.TEXTURE_MIN_FILTER,
+      this.context.NEAREST
+    )
+    this.context.texParameteri(
+      this.context.TEXTURE_2D,
+      this.context.TEXTURE_MAG_FILTER,
+      this.context.NEAREST
+    )
+    this.context.texParameteri(
+      this.context.TEXTURE_2D,
+      this.context.TEXTURE_WRAP_S,
+      this.context.REPEAT
+    )
+    this.context.texParameteri(
+      this.context.TEXTURE_2D,
+      this.context.TEXTURE_WRAP_T,
+      this.context.REPEAT
+    )
+    this.context.uniform1i(this.getUniformLocation(name), this.textureIndex)
+    this.textureIndex += 1
+
+    return this
   }
 
   registerUniform(
@@ -305,6 +350,31 @@ export default class WebGLBase {
     return this.bindBuffer(this.createVbo(data))
       .enableVertexAttrByName(attrName)
       .vertexAttrPointer(this.getAttrLocation(attrName), stride, type)
+  }
+
+  createTexture(
+    imageSource: HTMLImageElement | HTMLCanvasElement
+  ): WebGLTexture {
+    const texture: WebGLTexture | null = this.context.createTexture()
+
+    if (texture === null) {
+      throw new Error('can not create texture')
+    }
+
+    this.context.activeTexture(this.context[`TEXTURE${this.textureIndex}`])
+    this.context.bindTexture(this.context.TEXTURE_2D, texture)
+    this.context.texImage2D(
+      this.context.TEXTURE_2D,
+      0,
+      this.context.RGBA,
+      this.context.RGBA,
+      this.context.UNSIGNED_BYTE,
+      imageSource
+    )
+    this.context.generateMipmap(this.context.TEXTURE_2D)
+    this.context.bindTexture(this.context.TEXTURE_2D, null)
+
+    return texture
   }
 
   private createShader(shaderSource: string, shaderType: number): WebGLShader {
