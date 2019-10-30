@@ -6,20 +6,21 @@ uniform sampler2D filterTexture;
 uniform float uTime;
 
 const float maxDelay = 0.5;
-const float maxDuration = 0.5;
+const float duration = 0.5;
 
 void main(){
-  float time = (uTime / 80.0);
-  float progress = (sin(time) + 1.0) / 2.0;
+  float time = (sin(uTime / 50.0) + 1.0) / 2.0;
 
   float uvVol = (vUv.x + vUv.y) / 2.0;
-  float tProgress = clamp(progress - uvVol * maxDelay, 0.0, maxDuration) / maxDuration;
+  float delay = (snoise(vec3(vUv, uTime / 100.0)) + 1.0) / 2.0;
+  float progress = clamp(time - delay * maxDelay, 0.0, duration) / duration;
+  // float progress = clamp(time - delay * maxDelay, 0.0, duration) / duration;
 
-  // float filterEffect = snoise(vec3(vUv.x, vUv.y, uTime / 100.0)) * (2.0 * (progress >= 0.5 ? 1.0 - progress : progress));
-  float filterEffect = 2.0 * (tProgress >= 0.5 ? 1.0 - tProgress : tProgress);
-  vec4 filterColor = texture2D(filterTexture, vUv * filterEffect / 2.0);
+  float filterEffect = snoise(vec3(vUv, uTime / 80.0)) * (1.0 - pow(abs(time * 2.0 - 1.0), 2.0));
+  // float filterEffect = 2.0 * (progress >= 0.5 ? 1.0 - progress : progress);
+  vec4 filterColor = texture2D(filterTexture, vUv + filterEffect);
   float filterAvgColor = (filterColor.x + filterColor.y + filterColor.z) / 3.0;
-  vec2 targetUv = vec2(vUv.x + filterAvgColor * filterEffect * tProgress, vUv.y + filterAvgColor * filterEffect * tProgress);
+  vec2 targetUv = vUv + filterAvgColor * filterEffect;
   vec4 fromColor = texture2D(texture1, targetUv);
   vec4 toColor = texture2D(texture2, targetUv);
 
@@ -34,12 +35,12 @@ void main(){
 // uniform float uTime;
 
 // const float maxDelay = 0.1;
-// const float maxDuration = 1.0 - maxDelay;
+// const float duration = 1.0 - maxDelay;
 
 // void main() {
 //   float delay = (distance(vUv.x, 0.5) / 0.5 + distance(vUv.y, 0.5) / 0.5) / 2.0;
 //   float progressTime = (sin(uTime / 30.0) + 1.0) / 2.0;
-//   float progress = clamp(progressTime - delay * maxDelay, 0.0, maxDuration) / maxDuration;
+//   float progress = clamp(progressTime - delay * maxDelay, 0.0, duration) / duration;
 //   float peek = abs(step(0.5, progress) - progress) / 0.5 + 1.0;
 
 //   float noise = (snoise(vec3(vUv.x, vUv.y, uTime / 100.0)) + 1.0) / 2.0;
