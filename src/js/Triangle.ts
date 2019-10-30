@@ -31,6 +31,6 @@ export default class Triangle {
       this.z + 0
     ])
 
-    this.index = new Int16Array([0, 1, 2])
+    this.index = new Int16Array([0, 2, 1])
   }
 }

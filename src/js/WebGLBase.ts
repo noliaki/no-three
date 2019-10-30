@@ -219,44 +219,52 @@ export default class WebGLBase {
     type
   }: {
     name: string
-    data: Float32Array
-    type: string
+    data:
+      | Int8Array
+      | Int16Array
+      | Int32Array
+      | Float32Array
+      | Float64Array
+      | number
+      | number[]
+    type:
+      | '1i'
+      | '2i'
+      | '3i'
+      | '4i'
+      | '1f'
+      | '2f'
+      | '3f'
+      | '4f'
+      | '1iv'
+      | '2iv'
+      | '3iv'
+      | '4iv'
+      | '1fv'
+      | '2fv'
+      | '3fv'
+      | '4fv'
+      | 'Matrix2iv'
+      | 'Matrix3iv'
+      | 'Matrix4iv'
+      | 'Matrix2fv'
+      | 'Matrix3fv'
+      | 'Matrix4fv'
   }): WebGLBase {
-    switch (type) {
-      case 'f1':
-        this.context.uniform1fv(this.getUniformLocation(name), data)
-        return this
-      case 'f2':
-        this.context.uniform2fv(this.getUniformLocation(name), data)
-        return this
-      case 'f3':
-        this.context.uniform3fv(this.getUniformLocation(name), data)
-        return this
-      case 'f4':
-        this.context.uniform4fv(this.getUniformLocation(name), data)
-        return this
+    const location: WebGLUniformLocation | null = this.getUniformLocation(name)
 
-      case 'mat2':
-        this.context.uniformMatrix2fv(
-          this.getUniformLocation(name),
-          false,
-          data
-        )
-        return this
-      case 'mat3':
-        this.context.uniformMatrix3fv(
-          this.getUniformLocation(name),
-          false,
-          data
-        )
-        return this
-      case 'mat4':
-        this.context.uniformMatrix4fv(
-          this.getUniformLocation(name),
-          false,
-          data
-        )
-        return this
+    if (location === null) {
+      throw new Error('location is not found')
+    }
+
+    if (/^Matrix/i.test(type)) {
+      this.context[`uniform${type}`](location, false, data)
+    } else {
+      if (/(i|f)$/i.test(type)) {
+        this.context[`uniform${type}`](location, data)
+      } else {
+        this.context[`uniform${type}`](location, ...(data as number[]))
+      }
     }
 
     return this

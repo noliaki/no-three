@@ -2,16 +2,16 @@ import WebGLBase from './WebGLBase'
 import vertexShaderSource from './vertex-shader'
 import fragmentShaderSource from './fragment-shader'
 import Mat4 from './Mat4'
-import Triangle from './Triangle'
+// import Triangle from './Triangle'
 import Square from './Square'
 import { loadImage } from './helper'
 
 const base: WebGLBase = new WebGLBase({
   selector: '#app'
 })
-const triangle: Triangle = new Triangle([0, 0, 0], 8)
-const square: Square = new Square([0, 0, 0], 1)
-const square2: Square = new Square([1, 1, 0], 1)
+// const triangle: Triangle = new Triangle([0, 0.5, 0], 2)
+const square: Square = new Square([0, 0, 0], 2, 2)
+// const square2: Square = new Square([1, 1, 0], 1)
 const color: Float32Array = new Float32Array([
   1,
   0,
@@ -41,15 +41,18 @@ const textureCoord: Float32Array = new Float32Array([
   1.0
 ])
 
-const vMat: Float32Array = Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0])
-const pMat: Float32Array = Mat4.perspective(
-  90,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  100
-)
+// const vMat: Float32Array = Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0])
+// const pMat: Float32Array = Mat4.perspective(
+//   90,
+//   window.innerWidth / window.innerHeight,
+//   0.1,
+//   100
+// )
 
-const projectionViewMat: Float32Array = Mat4.multiply(vMat, pMat)
+const projectionViewMat: Float32Array = Mat4.multiply(
+  Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0]),
+  Mat4.perspective(45, window.innerWidth / window.innerHeight, 1, 100)
+)
 
 // const position: Float32Array = new Float32Array(
 //   square2.position.length + square.position.length
@@ -77,6 +80,8 @@ const projectionViewMat: Float32Array = Mat4.multiply(vMat, pMat)
 // console.log(position, index)
 // console.log(square.position, square.index)
 
+let time: number = 0
+
 async function init(): Promise<void> {
   const texture1: HTMLImageElement | HTMLCanvasElement = await loadImage(
     'cat-1.jpg'
@@ -84,13 +89,18 @@ async function init(): Promise<void> {
   const texture2: HTMLImageElement | HTMLCanvasElement = await loadImage(
     'cat-2.jpg'
   )
+  const filterTexture: HTMLImageElement | HTMLCanvasElement = await loadImage(
+    'cloud.png'
+  )
 
   base
+    // .setCanvasSize(window.innerWidth, window.innerHeight)
+    // .clear()
     .createProgram(vertexShaderSource, fragmentShaderSource)
     .registerUniform({
-      name: 'mvpMatrix',
-      data: projectionViewMat,
-      type: 'mat4'
+      name: 'uTime',
+      data: time,
+      type: '1f'
     })
     .registerTexture({
       name: 'texture1',
@@ -99,6 +109,10 @@ async function init(): Promise<void> {
     .registerTexture({
       name: 'texture2',
       image: texture2
+    })
+    .registerTexture({
+      name: 'filterTexture',
+      image: filterTexture
     })
     .registerVertexAttrByName({
       name: 'position',
@@ -119,7 +133,7 @@ async function init(): Promise<void> {
       base.createBufferObj(square.index, 'ELEMENT_ARRAY_BUFFER', 'STATIC_DRAW'),
       'ELEMENT_ARRAY_BUFFER'
     )
-    .drawElements('TRIANGLES', square.index.length)
+    // .drawElements('TRIANGLES', triangle.index.length)
     // .registerUniform(
     //   'mvpMatrix',
     //   Mat4.multiply(
@@ -128,26 +142,43 @@ async function init(): Promise<void> {
     //   ),
     //   'mat4'
     // )
-    // .drawArrays()
+    .drawArrays()
     .flush()
+
+  update()
 }
 
 window.addEventListener('resize', (): void => {
-  const projectionViewMat: Float32Array = Mat4.multiply(
-    Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0]),
-    Mat4.perspective(90, window.innerWidth / window.innerHeight, 0.1, 100)
-  )
+  // const projectionViewMat: Float32Array = Mat4.multiply(
+  //   Mat4.lookAt([0.0, 0.0, 1], [0, 0, 0], [0, 1, 0]),
+  //   Mat4.perspective(45, window.innerWidth / window.innerHeight, 1, 100)
+  // )
 
   base
     .setCanvasSize(window.innerWidth, window.innerHeight)
     .clear()
-    .registerUniform({
-      name: 'mvpMatrix',
-      data: projectionViewMat,
-      type: 'mat4'
-    })
-    .drawElements('TRIANGLES', square.index.length)
+    // .registerUniform({
+    //   name: 'mvpMatrix',
+    //   data: projectionViewMat,
+    //   type: 'mat4'
+    // })
+    .drawArrays()
+    // .drawElements('TRIANGLES', triangle.index.length)
     .flush()
 })
 
 init()
+
+function update() {
+  base
+    .clear()
+    .registerUniform({
+      name: 'uTime',
+      data: time++,
+      type: '1f'
+    })
+    .drawElements('TRIANGLES', square.index.length)
+    .flush()
+
+  requestAnimationFrame(update)
+}

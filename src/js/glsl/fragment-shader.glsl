@@ -1,12 +1,29 @@
-precision mediump float;
-
 varying vec4 vColor;
 varying vec2 vUv;
 uniform sampler2D texture1;
 uniform sampler2D texture2;
+uniform sampler2D filterTexture;
+uniform float uTime;
 
-void main(void){
-  gl_FragColor = texture2D(texture1, vUv) * texture2D(texture2, vUv);
+const float maxDelay = 0.5;
+const float maxDuration = 0.5;
+
+void main(){
+  float time = (uTime / 80.0);
+  float progress = (sin(time) + 1.0) / 2.0;
+
+  float uvVol = (vUv.x + vUv.y) / 2.0;
+  float tProgress = clamp(progress - uvVol * maxDelay, 0.0, maxDuration) / maxDuration;
+
+  // float filterEffect = snoise(vec3(vUv.x, vUv.y, uTime / 100.0)) * (2.0 * (progress >= 0.5 ? 1.0 - progress : progress));
+  float filterEffect = 2.0 * (tProgress >= 0.5 ? 1.0 - tProgress : tProgress);
+  vec4 filterColor = texture2D(filterTexture, vUv * filterEffect / 2.0);
+  float filterAvgColor = (filterColor.x + filterColor.y + filterColor.z) / 3.0;
+  vec2 targetUv = vec2(vUv.x + filterAvgColor * filterEffect * tProgress, vUv.y + filterAvgColor * filterEffect * tProgress);
+  vec4 fromColor = texture2D(texture1, targetUv);
+  vec4 toColor = texture2D(texture2, targetUv);
+
+  gl_FragColor = mix(fromColor, toColor, progress);
 }
 
 
