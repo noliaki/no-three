@@ -38,6 +38,7 @@ export default class WebGLBase {
   private program: WebGLProgram | null = null
   private clearColor: [number, number, number, number]
   private textureIndex: number = 0
+  private textureIndexMap: Map<string, number> = new Map()
 
   constructor({
     selector,
@@ -173,6 +174,16 @@ export default class WebGLBase {
     return this.context.getUniformLocation(this.program, attrName)
   }
 
+  getTextureIndex(name: string): number {
+    if (this.textureIndexMap.has(name)) {
+      return this.textureIndexMap.get(name) as number
+    }
+
+    this.textureIndexMap.set(name, this.textureIndex++)
+
+    return this.textureIndexMap.get(name) as number
+  }
+
   registerTexture({
     name,
     image
@@ -184,7 +195,9 @@ export default class WebGLBase {
       throw new Error('name and texture is needed')
     }
 
-    const texture: WebGLTexture = this.createTexture(image)
+    const textureIndex: number = this.getTextureIndex(name)
+
+    const texture: WebGLTexture = this.createTexture(image, textureIndex)
 
     this.context.bindTexture(this.context.TEXTURE_2D, texture)
     this.context.texParameteri(
@@ -207,8 +220,8 @@ export default class WebGLBase {
       this.context.TEXTURE_WRAP_T,
       this.context.REPEAT
     )
-    this.context.uniform1i(this.getUniformLocation(name), this.textureIndex)
-    this.textureIndex += 1
+
+    this.context.uniform1i(this.getUniformLocation(name), textureIndex)
 
     return this
   }
@@ -260,11 +273,12 @@ export default class WebGLBase {
     if (/^Matrix/i.test(type)) {
       this.context[`uniform${type}`](location, false, data)
     } else {
-      if (/(i|f)$/i.test(type)) {
-        this.context[`uniform${type}`](location, data)
-      } else {
-        this.context[`uniform${type}`](location, ...(data as number[]))
-      }
+      // if (/(i|f)$/i.test(type)) {
+      //   this.context[`uniform${type}`](location, data)
+      // } else {
+      //   this.context[`uniform${type}`](location, ...(data as number[]))
+      // }
+      this.context[`uniform${type}`](location, data)
     }
 
     return this
@@ -403,7 +417,8 @@ export default class WebGLBase {
   }
 
   createTexture(
-    imageSource: HTMLImageElement | HTMLCanvasElement
+    imageSource: HTMLImageElement | HTMLCanvasElement,
+    textureIndex: number
   ): WebGLTexture {
     const texture: WebGLTexture | null = this.context.createTexture()
 
@@ -411,7 +426,7 @@ export default class WebGLBase {
       throw new Error('can not create texture')
     }
 
-    this.context.activeTexture(this.context[`TEXTURE${this.textureIndex}`])
+    this.context.activeTexture(this.context[`TEXTURE${textureIndex}`])
     this.context.bindTexture(this.context.TEXTURE_2D, texture)
     this.context.texImage2D(
       this.context.TEXTURE_2D,
