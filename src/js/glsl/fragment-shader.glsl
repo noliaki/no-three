@@ -24,7 +24,7 @@ vec2 imageUv(vec2 resolution, vec2 imageResolution, vec2 uv){
 
 void main(){
   vec2 uv = imageUv(uResolution, uImageResolution, vUv);
-  float time = pow(sin(uTime / 100.0), 2.0);
+  float time = (sin(uTime / 100.0 - HALF_PI) + 1.0) / 2.0;
   float uvVol = (uv.x + uv.y) / 2.0;
   // float delay = uvVol;
   float delay = sin(uv.x + abs(snoise(vec3(uv, uTime / 1000.0))) / 2.0);
