@@ -24,16 +24,16 @@ vec2 imageUv(vec2 resolution, vec2 imageResolution, vec2 uv){
 
 void main(){
   vec2 uv = imageUv(uResolution, uImageResolution, vUv);
-  float time = pow(sin(uTime / 100.0), 2.0);
+  float time = uTime;//pow(sin(uTime / 100.0), 2.0);
   float uvVol = ((pow((uv.x * 2.0) - 1.0, 2.0) + pow((uv.y * 2.0) - 1.0, 2.0))) / 2.0;
   // float delay = uvVol;
-  float delay = sin(uvVol + pow(snoise(vec3(uv, uTime / 400.0)), 2.0));
+  float delay = sin(uvVol + pow(snoise(vec3(uv, uTime)), 2.0));
   float progress = clamp(time - delay * maxDelay, 0.0, duration) / duration;
   float revProgress = 1.0 - progress;
-  float noise = snoise(vec3(uv, uTime / 100.0));
+  float noise = snoise(vec3(uv, uTime));
   float filterVol = 1.0 - pow(abs(progress * 2.0 - 1.0), 2.0);
 
-  vec4 filterColor = texture2D(filterTexture, uv + (filterVol * noise) / 10.0);
+  vec4 filterColor = texture2D(filterTexture, uv + (filterVol * noise) / 4.0);
 
   float filterAvgColor = ((filterColor.x + filterColor.y + filterColor.z) / 3.0) * 2.0 - 1.0;
   vec4 fromColor = texture2D(texture1, uv + progress * filterAvgColor);

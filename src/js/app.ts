@@ -1,6 +1,7 @@
 import WebGLBase from './WebGLBase'
 import vertexShaderSource from './vertex-shader'
 import fragmentShaderSource from './fragment-shader'
+import { TweenLite, Power0 } from 'gsap/all'
 // import Mat4 from './Mat4'
 // import Triangle from './Triangle'
 import Square from './Square'
@@ -23,18 +24,22 @@ const textureCoord: Float32Array = new Float32Array([
   1.0
 ])
 
-let time: number = 0
+let textures: (HTMLImageElement | HTMLCanvasElement)[] = []
+let filterTextures: (HTMLImageElement | HTMLCanvasElement)[] = []
+let index: number = 0
+
+const time: { value: number; forward: boolean } = {
+  value: 0,
+  forward: true
+}
 
 async function init(): Promise<void> {
-  const texture1: HTMLImageElement | HTMLCanvasElement = await loadImage(
-    'cat-1.jpg'
-  )
-  const texture2: HTMLImageElement | HTMLCanvasElement = await loadImage(
-    'cat-2.jpg'
-  )
-  const filterTexture: HTMLImageElement | HTMLCanvasElement = await loadImage(
-    'cloud.png'
-  )
+  textures = await Promise.all([loadImage('cat-1.jpg'), loadImage('cat-2.jpg')])
+
+  filterTextures = await Promise.all([
+    loadImage('polygon.jpg'),
+    loadImage('cloud.png')
+  ])
 
   base
     .createProgram(vertexShaderSource, fragmentShaderSource)
@@ -50,20 +55,20 @@ async function init(): Promise<void> {
     })
     .registerUniform({
       name: 'uTime',
-      data: time,
+      data: time.value,
       type: '1f'
     })
     .registerTexture({
       name: 'texture1',
-      image: texture1
+      image: textures[0]
     })
     .registerTexture({
       name: 'texture2',
-      image: texture2
+      image: textures[1]
     })
     .registerTexture({
       name: 'filterTexture',
-      image: filterTexture
+      image: filterTextures[index]
     })
     .registerVertexAttrByName({
       name: 'position',
@@ -81,23 +86,21 @@ async function init(): Promise<void> {
     )
     .drawElements('TRIANGLES', square.index.length)
     .flush()
-
-  update()
 }
 
-function update() {
-  base
-    .clear()
-    .registerUniform({
-      name: 'uTime',
-      data: time++,
-      type: '1f'
-    })
-    .drawElements('TRIANGLES', square.index.length)
-    .flush()
+// function update() {
+//   base
+//     .clear()
+//     .registerUniform({
+//       name: 'uTime',
+//       data: time++,
+//       type: '1f'
+//     })
+//     .drawElements('TRIANGLES', square.index.length)
+//     .flush()
 
-  requestAnimationFrame(update)
-}
+//   requestAnimationFrame(update)
+// }
 
 window.addEventListener('resize', (): void => {
   base
@@ -113,3 +116,45 @@ window.addEventListener('resize', (): void => {
 })
 
 init()
+;(document.getElementById('btn') as HTMLButtonElement).addEventListener(
+  'click',
+  (event: Event): void => {
+    event.preventDefault()
+
+    TweenLite.to(time, 2, {
+      value: time.forward ? 1 : 0,
+      ease: Power0.easeNone,
+      onUpdate(): void {
+        base
+          .clear()
+          .registerUniform({
+            name: 'uTime',
+            data: time.value,
+            type: '1f'
+          })
+          .drawElements('TRIANGLES', square.index.length)
+          .flush()
+      },
+      onComplete(): void {
+        base
+          .clear()
+          .registerTexture({
+            name: 'filterTexture',
+            image: filterTextures[++index % textures.length]
+          })
+          .registerUniform({
+            name: 'uTime',
+            data: time.value,
+            type: '1f'
+          })
+          .drawElements('TRIANGLES', square.index.length)
+          .flush()
+      }
+    })
+
+    time.forward = !time.forward
+  },
+  {
+    capture: false
+  }
+)
