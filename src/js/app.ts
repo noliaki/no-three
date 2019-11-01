@@ -12,24 +12,6 @@ const base: WebGLBase = new WebGLBase({
   selector: '#app'
 })
 const square: Square = new Square([0, 0, 0], 2, 2)
-const color: Float32Array = new Float32Array([
-  1,
-  0,
-  0,
-  1,
-  0,
-  1,
-  0,
-  1,
-  0,
-  0,
-  1,
-  1,
-  0,
-  0.5,
-  1,
-  1
-])
 const textureCoord: Float32Array = new Float32Array([
   0.0,
   0.0,
@@ -51,7 +33,7 @@ async function init(): Promise<void> {
     'cat-2.jpg'
   )
   const filterTexture: HTMLImageElement | HTMLCanvasElement = await loadImage(
-    'polygon.jpg'
+    'cloud.png'
   )
 
   base
@@ -92,11 +74,6 @@ async function init(): Promise<void> {
       name: 'textureCoord',
       size: 2,
       data: textureCoord
-    })
-    .registerVertexAttrByName({
-      name: 'color',
-      size: 4,
-      data: color
     })
     .bindBuffer(
       base.createBufferObj(square.index, 'ELEMENT_ARRAY_BUFFER', 'STATIC_DRAW'),
