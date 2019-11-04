@@ -1,7 +1,7 @@
 import WebGLBase from './WebGLBase'
 import vertexShaderSource from './vertex-shader'
 import fragmentShaderSource from './fragment-shader'
-import { TweenLite, Power0 } from 'gsap/all'
+import { TweenLite, Power3 } from 'gsap/all'
 // import Mat4 from './Mat4'
 // import Triangle from './Triangle'
 import Square from './Square'
@@ -55,6 +55,11 @@ async function init(): Promise<void> {
     })
     .registerUniform({
       name: 'uTime',
+      data: Date.now(),
+      type: '1f'
+    })
+    .registerUniform({
+      name: 'uProgress',
       data: time.value,
       type: '1f'
     })
@@ -123,12 +128,17 @@ init()
 
     TweenLite.to(time, 2, {
       value: time.forward ? 1 : 0,
-      ease: Power0.easeNone,
+      ease: Power3.easeInOutSine,
       onUpdate(): void {
         base
           .clear()
           .registerUniform({
             name: 'uTime',
+            data: Date.now(),
+            type: '1f'
+          })
+          .registerUniform({
+            name: 'uProgress',
             data: time.value,
             type: '1f'
           })
@@ -143,7 +153,7 @@ init()
             image: filterTextures[++index % textures.length]
           })
           .registerUniform({
-            name: 'uTime',
+            name: 'uProgress',
             data: time.value,
             type: '1f'
           })

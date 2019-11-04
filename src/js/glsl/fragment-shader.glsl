@@ -4,6 +4,7 @@ uniform sampler2D texture1;
 uniform sampler2D texture2;
 uniform sampler2D filterTexture;
 uniform float uTime;
+uniform float uProgress;
 uniform vec2 uResolution;
 uniform vec2 uImageResolution;
 
@@ -24,13 +25,13 @@ vec2 imageUv(vec2 resolution, vec2 imageResolution, vec2 uv){
 
 void main(){
   vec2 uv = imageUv(uResolution, uImageResolution, vUv);
-  float time = uTime;//pow(sin(uTime / 100.0), 2.0);
+  // float time = uProgress;//pow(sin(uProgress / 100.0), 2.0);
   float uvVol = ((pow((uv.x * 2.0) - 1.0, 2.0) + pow((uv.y * 2.0) - 1.0, 2.0))) / 2.0;
   // float delay = uvVol;
-  float delay = sin(uvVol + pow(snoise(vec3(uv, uTime)), 2.0));
-  float progress = clamp(time - delay * maxDelay, 0.0, duration) / duration;
+  float noise = snoise(vec3(uv, sin(uTime)));
+  float delay = sin(uvVol + pow(noise, 2.0));
+  float progress = clamp(uProgress - delay * maxDelay, 0.0, duration) / duration;
   float revProgress = 1.0 - progress;
-  float noise = snoise(vec3(uv, uTime));
   float filterVol = 1.0 - pow(abs(progress * 2.0 - 1.0), 2.0);
 
   vec4 filterColor = texture2D(filterTexture, uv + (filterVol * noise) / 4.0);
