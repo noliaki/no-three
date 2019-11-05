@@ -27,6 +27,7 @@ const textureCoord: Float32Array = new Float32Array([
 let textures: (HTMLImageElement | HTMLCanvasElement)[] = []
 let filterTextures: (HTMLImageElement | HTMLCanvasElement)[] = []
 let index: number = 0
+let isAnimation: boolean = false
 
 const time: { progress: number; value: number; forward: boolean } = {
   progress: 0,
@@ -94,20 +95,6 @@ async function init(): Promise<void> {
     .flush()
 }
 
-// function update() {
-//   base
-//     .clear()
-//     .registerUniform({
-//       name: 'uTime',
-//       data: time++,
-//       type: '1f'
-//     })
-//     .drawElements('TRIANGLES', square.index.length)
-//     .flush()
-
-//   requestAnimationFrame(update)
-// }
-
 window.addEventListener('resize', (): void => {
   base
     .setCanvasSize(window.innerWidth, window.innerHeight)
@@ -124,11 +111,48 @@ window.addEventListener('resize', (): void => {
 init()
 ;(document.getElementById('btn') as HTMLButtonElement).addEventListener(
   'click',
-  (event: Event): void => {
+  async (event: Event): Promise<void> => {
     event.preventDefault()
 
+    if (isAnimation) return
+
+    isAnimation = true
+    await animate()
+    time.progress = 0
+    base
+      .clear()
+      .registerTexture({
+        name: 'filterTexture',
+        image: filterTextures[++index % textures.length]
+      })
+      .registerUniform({
+        name: 'uProgress',
+        data: time.progress,
+        type: '1f'
+      })
+      .registerTexture({
+        name: 'texture1',
+        image: textures[time.forward ? 1 : 0]
+      })
+      .registerTexture({
+        name: 'texture2',
+        image: textures[time.forward ? 0 : 1]
+      })
+      .drawElements('TRIANGLES', square.index.length)
+      .flush()
+
+    time.forward = !time.forward
+    isAnimation = false
+  },
+  {
+    capture: false
+  }
+)
+
+function animate(): Promise<void> {
+  return new Promise((resolve: () => void): void => {
     TweenLite.to(time, 2, {
-      progress: time.forward ? 1 : 0,
+      progress: 1,
       ease: Power0.easeNone,
       onUpdate(): void {
         base
@@ -147,25 +171,8 @@ init()
           .flush()
       },
       onComplete(): void {
-        base
-          .clear()
-          .registerTexture({
-            name: 'filterTexture',
-            image: filterTextures[++index % textures.length]
-          })
-          .registerUniform({
-            name: 'uProgress',
-            data: time.progress,
-            type: '1f'
-          })
-          .drawElements('TRIANGLES', square.index.length)
-          .flush()
+        resolve()
       }
     })
-
-    time.forward = !time.forward
-  },
-  {
-    capture: false
-  }
-)
+  })
+}
