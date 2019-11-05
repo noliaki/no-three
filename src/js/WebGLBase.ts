@@ -31,7 +31,7 @@ type Mode =
 type DrayElType = 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT' | 'UNSIGNED_INT'
 
 export default class WebGLBase {
-  private canvas: HTMLCanvasElement | null
+  private canvas: HTMLCanvasElement
   private context: WebGLRenderingContext
   private vertexShader: WebGLShader | null = null
   private fragmentShader: WebGLShader | null = null

@@ -40,3 +40,6 @@ dist/*
 !dist/*.png
 !dist/*.jpg
 .cache
+
+# Local Netlify folder
+.netlify
