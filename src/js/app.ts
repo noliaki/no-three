@@ -1,7 +1,7 @@
 import WebGLBase from './WebGLBase'
 import vertexShaderSource from './vertex-shader'
 import fragmentShaderSource from './fragment-shader'
-import { TweenLite, Power3 } from 'gsap/all'
+import { TweenLite, Power0 } from 'gsap/all'
 // import Mat4 from './Mat4'
 // import Triangle from './Triangle'
 import Square from './Square'
@@ -10,7 +10,7 @@ import { loadImage } from './helper'
 // const triangle: Triangle = new Triangle([0, 0.5, 0], 2)
 // const square2: Square = new Square([1, 1, 0], 1)
 const base: WebGLBase = new WebGLBase({
-  selector: '#app'
+  canvasEl: document.getElementById('app') as HTMLCanvasElement
 })
 const square: Square = new Square([0, 0, 0], 2, 2)
 const textureCoord: Float32Array = new Float32Array([
@@ -28,7 +28,8 @@ let textures: (HTMLImageElement | HTMLCanvasElement)[] = []
 let filterTextures: (HTMLImageElement | HTMLCanvasElement)[] = []
 let index: number = 0
 
-const time: { value: number; forward: boolean } = {
+const time: { progress: number; value: number; forward: boolean } = {
+  progress: 0,
   value: 0,
   forward: true
 }
@@ -127,19 +128,19 @@ init()
     event.preventDefault()
 
     TweenLite.to(time, 2, {
-      value: time.forward ? 1 : 0,
-      ease: Power3.easeInOutSine,
+      progress: time.forward ? 1 : 0,
+      ease: Power0.easeNone,
       onUpdate(): void {
         base
           .clear()
           .registerUniform({
             name: 'uTime',
-            data: Date.now(),
+            data: time.value++,
             type: '1f'
           })
           .registerUniform({
             name: 'uProgress',
-            data: time.value,
+            data: time.progress,
             type: '1f'
           })
           .drawElements('TRIANGLES', square.index.length)
@@ -154,7 +155,7 @@ init()
           })
           .registerUniform({
             name: 'uProgress',
-            data: time.value,
+            data: time.progress,
             type: '1f'
           })
           .drawElements('TRIANGLES', square.index.length)

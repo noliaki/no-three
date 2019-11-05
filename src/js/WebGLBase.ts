@@ -41,23 +41,17 @@ export default class WebGLBase {
   private textureIndexMap: Map<string, number> = new Map()
 
   constructor({
-    selector,
+    canvasEl,
     clearColor = [0, 0, 0, 1],
     width,
     height
   }: {
-    selector: string
+    canvasEl: HTMLCanvasElement
     clearColor?: [number, number, number, number?]
     width?: number
     height?: number
   }) {
-    this.canvas = document.querySelector(selector)
-    if (this.canvas === null) {
-      throw new Error(`${selector} is not found`)
-    }
-
-    // this.canvas.width = window.innerWidth
-    // this.canvas.height = window.innerHeight
+    this.canvas = canvasEl
 
     this.context = (this.canvas.getContext('webgl') ||
       this.canvas.getContext('experimental-webgl')) as WebGLRenderingContext
