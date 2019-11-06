@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev": "cross-env NODE_ENV=development parcel serve ./src/index.html",
-    "build": "cross-env NODE_ENV=production parcel build ./src/index.html --out-dir ./dist"
+    "build": "cross-env NODE_ENV=production parcel build ./src/index.html --out-dir ./dist --experimental-scope-hoisting"
   },
   "dependencies": {
     "gsap": "^2.1.3"
